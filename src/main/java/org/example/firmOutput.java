@@ -3,13 +3,14 @@ package org.example;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.Keys;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 
 import java.time.Duration;
 import java.util.*;
+
 import org.openqa.selenium.JavascriptExecutor;
 
 public class firmOutput {
@@ -49,17 +50,17 @@ public class firmOutput {
 
         element = driver.findElement(By.xpath("//div[@data-ftid='component_select_dropdown']"));
 
+
         WebElement div = driver.findElement(By.xpath("//div[@data-ftid='component_select_dropdown']"));
 
-        // Создайте объект JavascriptExecutor
+        // Создание объекта JavascriptExecutor
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        // Прокрутите div блок
-        // Получите высоту div блока
+        // Получение высоты div блока
         long divHeight = (Long) js.executeScript("return arguments[0].scrollHeight", div);
-        List<WebElement> allItems = new ArrayList<>();
+        List<String> allItems = new ArrayList<>();
 
-        // Прокрутите div блок на 100-200 пикселей каждые 0.5 секунды
+        // Прокрутка div блок на 100-200 пикселей каждые 0.5 секунд
         for (int i = 0; i < divHeight; i += 500) {
             js.executeScript("arguments[0].scrollTop = " + i, div);
             try {
@@ -67,25 +68,57 @@ public class firmOutput {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-           // List<WebElement> dropdownItems = driver.findElements(By.xpath(".//div[@role='option']"));
+
+            WebDriverWait waitElement = new WebDriverWait(driver, Duration.ofSeconds(3));
+            waitElement.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(".//div[@role='option']")));
 
             List<WebElement> dropdownItems = div.findElements(By.xpath(".//div[@role='option']"));
-
-            System.out.println(dropdownItems);
-
             for (WebElement item : dropdownItems) {
                 String text = item.getText();
                 if (!text.isEmpty()) {
-                    allItems.add(item);
+                    allItems.add(text);
                 }
             }
 
         }
-        for (WebElement item : allItems) {
-            System.out.println(item.getText());
+
+        Set<String> uniqueItems = new LinkedHashSet<>(allItems);
+
+        Map<String, Integer> brandCounts = new TreeMap<>();
+
+        for (String item : uniqueItems) {
+            if (item.contains("(")) {
+                String[] parts = item.split("\\(");
+                String brand = parts[0].trim();
+                if (parts.length > 1) {
+                    String numberString = parts[1].replaceAll("[^0-9]", "");
+                    int count = Integer.parseInt(numberString);
+                    brandCounts.put(brand, count);
+                }
+            }
         }
 
+// Сортировка по значению
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(brandCounts.entrySet());
+        list.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+
+        Map<String, Integer> sortedBrandCounts = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            sortedBrandCounts.put(entry.getKey(), entry.getValue());
+        }
+
+// Вывод отсортированного ассоциативного массива
+        System.out.println("| Фирма | Количество объявлений |");
+        System.out.println("|-------|----------------------|");
+        int count = 0;
+        for (Map.Entry<String, Integer> entry : sortedBrandCounts.entrySet()) {
+            System.out.println("| " + entry.getKey() + " | " + entry.getValue() + " |");
+            count++;
+            if (count >= 20) {
+                break;
+            }
         }
 
     }
 
+}
